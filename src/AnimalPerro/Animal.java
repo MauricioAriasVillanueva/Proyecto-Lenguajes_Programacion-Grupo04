@@ -29,7 +29,7 @@ public class Animal {
     
     public void hacerSonido(){
         
-       System.out.print("Guauu");
+       System.out.print("El animal realiza un sonido");
        
     }
 }
