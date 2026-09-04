@@ -1,0 +1,111 @@
+package ejemplo5;
+
+public class Disenador extends Empleado {
+    private String herramienta;
+
+    public Disenador(String nombre, double sueldo, String herramienta) {
+        super(nombre, sueldo);
+        this.herramienta = herramienta;
+    }
+
+    public String getHerramienta() {
+        return herramienta;
+    }
+
+    public void setHerramienta(String herramienta) {
+        this.herramienta = herramienta;
+    }
+
+    @Override
+    public void trabajar() {
+        System.out.println(getNombre() + " está diseñando interfaces utilizando " + herramienta + ".");
+    }
+}
+package ejemplo5;
+
+public class Ejemplo5 {
+
+    public static void main(String[] args) {
+        // 1. Crear objetos específicos
+        Programador prog = new Programador("Carlos", 3500.0, "Java");
+        Disenador dis = new Disenador("Ana", 3000.0, "Figma");
+
+        // 2. Mostrar datos y ejecutar trabajar() directo
+        System.out.println("=== DATOS PROGRAMADOR ===");
+        System.out.println("Nombre: " + prog.getNombre());
+        System.out.println("Sueldo: S/ " + prog.getSueldo());
+        System.out.println("Lenguaje: " + prog.getLenguaje());
+        prog.trabajar();
+
+        System.out.println("\n=== DATOS DISEÑADOR ===");
+        System.out.println("Nombre: " + dis.getNombre());
+        System.out.println("Sueldo: S/ " + dis.getSueldo());
+        System.out.println("Herramienta: " + dis.getHerramienta());
+        dis.trabajar();
+
+        // 3. Demostración de Polimorfismo
+        System.out.println("\n=== DEMOSTRACIÓN DE POLIMORFISMO ===");
+        Empleado emp1 = prog;
+        Empleado emp2 = dis;
+
+        emp1.trabajar();
+        emp2.trabajar();
+    }
+}
+
+
+package ejemplo5;
+
+public class Empleado {
+    private String nombre;
+    private double sueldo;
+
+    public Empleado(String nombre, double sueldo) {
+        this.nombre = nombre;
+        this.sueldo = sueldo;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public double getSueldo() {
+        return sueldo;
+    }
+
+    public void setSueldo(double sueldo) {
+        this.sueldo = sueldo;
+    }
+
+    public void trabajar() {
+        System.out.println(nombre + " está trabajando en sus labores generales.");
+    }
+}
+package ejemplo5;
+
+public class Programador extends Empleado {
+    private String lenguaje;
+
+    public Programador(String nombre, double sueldo, String lenguaje) {
+        super(nombre, sueldo);
+        this.lenguaje = lenguaje;
+    }
+
+    public String getLenguaje() {
+        return lenguaje;
+    }
+
+    public void setLenguaje(String lenguaje) {
+        this.lenguaje = lenguaje;
+    }
+
+    @Override
+    public void trabajar() {
+        System.out.println(getNombre() + " está programando código utilizando " + lenguaje + ".");
+    }
+}
+
