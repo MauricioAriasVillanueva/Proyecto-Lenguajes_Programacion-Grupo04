@@ -1,0 +1,2 @@
+87465 | Paracetamol | S/ 30 | Stock: 160
+12345 | cetericina | S/ 5.4 | Stock: 200
