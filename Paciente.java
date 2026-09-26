@@ -39,6 +39,10 @@ public class Paciente extends Persona {
 
     @Override
     public String toTxt() {
-        return dni + " | " + apellidos + " | " + nombre + " | Edad: " + edad + " | Tel: " + telefono + " | " + seguro + " | Triaje: " + estadoTriaje;
+        return dniHash + " | " + apellidos + " | " + nombre
+        + " | Edad: " + edad
+        + " | Tel: " + telefono
+        + " | " + seguro
+        + " | Triaje: " + estadoTriaje;
     }
 }
