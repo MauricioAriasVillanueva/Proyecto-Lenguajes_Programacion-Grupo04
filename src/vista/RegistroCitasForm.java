@@ -252,13 +252,35 @@ public class RegistroCitasForm extends javax.swing.JFrame {
         return;
     }
     String resultado = service.buscarPaciente(dni);
+    String resultado = service.buscarPaciente(dni);
+
     if (resultado != null) {
-    jTextField2.setText(resultado);
-    javax.swing.JOptionPane.showMessageDialog(this, "Paciente encontrado.");
-            } else {
-                javax.swing.JOptionPane.showMessageDialog(this, "Paciente no encontrado en pacientes.txt", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
-            jTextField2.setText("");
-        }
+
+    String[] datos = resultado.split("\\|");
+
+    if (datos.length >= 3) {
+        String apellidos = datos[1].trim();
+        String nombre = datos[2].trim();
+
+        jTextField2.setText(nombre + " " + apellidos);
+    }
+
+    javax.swing.JOptionPane.showMessageDialog(
+        this,
+        "Paciente encontrado."
+        );
+
+        } else {
+
+        javax.swing.JOptionPane.showMessageDialog(
+            this,
+            "Paciente no encontrado en pacientes.txt",
+            "Error",
+            javax.swing.JOptionPane.ERROR_MESSAGE
+            );
+
+        jTextField2.setText("");
+    }
     }//GEN-LAST:event_btnBuscarPacienteActionPerformed
 
     private void jTextField3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField3ActionPerformed
@@ -271,12 +293,31 @@ public class RegistroCitasForm extends javax.swing.JFrame {
     javax.swing.JOptionPane.showMessageDialog(this, "Ingrese el ID del médico.", "Advertencia", javax.swing.JOptionPane.WARNING_MESSAGE);
     return;
     }
-    String resultado = service.buscarMedico(id);
+   String resultado = service.buscarMedico(id);
+
     if (resultado != null) {
-    jTextField4.setText(resultado);
-    javax.swing.JOptionPane.showMessageDialog(this, "Médico encontrado.");
+
+    String[] datos = resultado.split("\\|");
+
+    if (datos.length >= 2) {
+        String nombreMedico = datos[1].trim();
+        jTextField4.setText(nombreMedico);
+    }
+
+    javax.swing.JOptionPane.showMessageDialog(
+        this,
+        "Médico encontrado."
+    );
+
     } else {
-    javax.swing.JOptionPane.showMessageDialog(this, "Médico no encontrado en medicos.txt", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+
+    javax.swing.JOptionPane.showMessageDialog(
+        this,
+        "Médico no encontrado en medicos.txt",
+        "Error",
+        javax.swing.JOptionPane.ERROR_MESSAGE
+    );
+
     jTextField4.setText("");
     }
     }//GEN-LAST:event_btnBuscarMedicoActionPerformed
@@ -287,12 +328,31 @@ public class RegistroCitasForm extends javax.swing.JFrame {
     javax.swing.JOptionPane.showMessageDialog(this, "Ingrese el código del medicamento.", "Advertencia", javax.swing.JOptionPane.WARNING_MESSAGE);
     return;
     }
-    String resultado = service.buscarMedicamento(cod);
+    SString resultado = service.buscarMedicamento(cod);
+
     if (resultado != null) {
-    jTextField6.setText(resultado);
-    javax.swing.JOptionPane.showMessageDialog(this, "Medicamento encontrado.");
+
+    String[] datos = resultado.split("\\|");
+
+    if (datos.length >= 2) {
+        String nombreMedicamento = datos[1].trim();
+        jTextField6.setText(nombreMedicamento);
+    }
+
+    javax.swing.JOptionPane.showMessageDialog(
+        this,
+        "Medicamento encontrado."
+    );
+
     } else {
-    javax.swing.JOptionPane.showMessageDialog(this, "Medicamento no encontrado en medicamentos.txt", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+
+    javax.swing.JOptionPane.showMessageDialog(
+        this,
+        "Medicamento no encontrado en medicamentos.txt",
+        "Error",
+        javax.swing.JOptionPane.ERROR_MESSAGE
+    );
+
     jTextField6.setText("");
     }
     }//GEN-LAST:event_btnBuscarMedicamentoActionPerformed
