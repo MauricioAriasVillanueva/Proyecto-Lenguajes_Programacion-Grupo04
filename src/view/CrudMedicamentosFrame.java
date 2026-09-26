@@ -3,7 +3,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import javax.swing.JOptionPane;
-public class CrudMedicamentosFrame extends javax.swing.JFrame {
+public class CrudMedicamentosFrame extends  javax.swing.JFrame {
     private final service.GestionSaludService service = new service.GestionSaludService();
     private void guardarMedicamentoEnTxt(String codigo, String nombre, String precio, String stock) {
     String rutaArchivo = "medicamentos.txt";
