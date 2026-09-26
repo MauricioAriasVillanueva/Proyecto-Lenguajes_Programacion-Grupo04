@@ -4,7 +4,7 @@
   <NonVisualComponents>
     <Component class="javax.swing.JLabel" name="jLabel8">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Centro de Salud Daniel Alcides Carri&#xf3;n - Campoy"/>
+        <Property name="text" type="java.lang.String"  value="Centro de Salud Daniel Alcides Carri&#xf3;n - Campoy"/>
       </Properties>
     </Component>
   </NonVisualComponents>
