@@ -16,7 +16,7 @@ public class CitaMedica {
     public String getDniPaciente() { return dniPaciente; }
     public String getIdMedico() { return idMedico; }
     public String getCodMedicamento() { return codMedicamento; }
-    public double getCostoAtencion() { return costoAtencion; }
+    public double getCostoAtencion() { return costoAtencion;  }
 
     public String toTxt() {
         return "PAC: " + dniPaciente + " | MED: " + idMedico + " | MEDICA: " + codMedicamento + " | Costo: S/ " + costoAtencion;
