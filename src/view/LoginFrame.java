@@ -1,7 +1,7 @@
 package view;
 public class LoginFrame extends javax.swing.JFrame {
     private int intentos = 0;
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LoginFrame.class.getName());
+    private static final  java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LoginFrame.class.getName());
 
     public LoginFrame() {
         initComponents();
