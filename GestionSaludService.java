@@ -34,7 +34,8 @@ public class GestionSaludService {
     }
 
     public String buscarPaciente(String dni) {
-        return db.buscarClaveEnTxt("pacientes.txt", dni);
+        String dniHash = util.SeguridadUtil.encriptarSHA256(dni);
+        return db.buscarClaveEnTxt("pacientes.txt", dniHash);
     }
 
     public String buscarMedico(String id) {
