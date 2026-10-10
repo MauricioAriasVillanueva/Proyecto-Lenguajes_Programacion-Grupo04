@@ -1,6 +1,6 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this templat
+ * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package view;
 
@@ -15,15 +15,451 @@ import javax.swing.JOptionPane;
 public class RegistroCitasForm extends javax.swing.JFrame {
     
     private final service.GestionSaludService service = new service.GestionSaludService();
+        private final java.util.Map<String, String> especialidades =
+        new java.util.HashMap<>();
+
+    private final java.util.Map<String, String> dniPacientes =
+        new java.util.HashMap<>();
+
+    private final java.util.Map<String, String> idsMedicos =
+        new java.util.HashMap<>();
+
+    private final java.util.Map<String, String> codigosMedicamentos =
+        new java.util.HashMap<>();
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(RegistroCitasForm.class.getName());
 
     /**
      * Creates new form RegistroCitasForm
      */
+  
     public RegistroCitasForm() {
         initComponents();
         setLocationRelativeTo(null);
+        cargarDatosCitas();
+        buscarCitas();
+
+        jButton1.addActionListener(e -> buscarCitas());
+
+        txtEspecialidad.setEditable(false);
+        txtFechaCita.setEditable(false);
+        txtHoraCita.setEditable(false);
+
+        cargarDatosCitas();
+
+        cmbMedico.addActionListener(e -> {
+            String seleccionado =
+                String.valueOf(cmbMedico.getSelectedItem());
+
+            txtEspecialidad.setText(
+                especialidades.getOrDefault(seleccionado, "")
+            );
+        });
     }
+
+    
+    
+    private void leerRegistros(
+            String archivo,
+            java.util.function.Consumer<String[]> procesar) {
+
+        java.io.File file = new java.io.File(archivo);
+
+        if (!file.exists()) {
+            return;
+        }
+
+        try (java.io.BufferedReader br =
+                new java.io.BufferedReader(
+                    new java.io.FileReader(file))) {
+
+            String linea;
+
+            while ((linea = br.readLine()) != null) {
+                String[] datos = linea.split("\\s*\\|\\s*");
+                procesar.accept(datos);
+            }
+
+        } catch (java.io.IOException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error al leer " + archivo + ": " + e.getMessage());
+        }
+    }
+
+    private void cargarDatosCitas() {
+
+        cmbPaciente.removeAllItems();
+        cmbMedico.removeAllItems();
+        cmbMedicamento.removeAllItems();
+
+        especialidades.clear();
+        dniPacientes.clear();
+        idsMedicos.clear();
+        codigosMedicamentos.clear();
+
+        leerRegistros("pacientes.txt", datos -> {
+
+            if (datos.length < 3) return;
+
+            String dni = "";
+
+            for (String dato : datos) {
+                if (dato.startsWith("DNI Cifrado:")) {
+                    try {
+                        String cifrado = dato.substring(
+                            "DNI Cifrado:".length()).trim();
+
+                        dni = util.CifradoDni.descifrar(cifrado);
+
+                    } catch (IllegalStateException ex) {
+                        dni = "";
+                    }
+                }
+            }
+
+            if (!dni.matches("\\d{8}")) return;
+
+            String opcion = datos[2] + " " + datos[1]
+                + " - DNI: " + dni;
+
+            dniPacientes.put(opcion, dni);
+            cmbPaciente.addItem(opcion);
+        });
+
+        leerRegistros("medicos.txt", datos -> {
+
+            if (datos.length < 5) return;
+
+            String cargo = datos[2].toLowerCase();
+
+            if (!cargo.contains("doctor")
+                    && !cargo.contains("médico")
+                    && !cargo.contains("medico")) {
+                return;
+            }
+
+            String opcion = datos[0] + " - " + datos[1];
+
+            idsMedicos.put(opcion, datos[0]);
+            especialidades.put(opcion, datos[3]);
+
+            cmbMedico.addItem(opcion);
+        });
+
+        leerRegistros("medicamentos.txt", datos -> {
+
+            if (datos.length < 4) return;
+
+            String opcion = datos[0] + " - " + datos[1];
+
+            for (String dato : datos) {
+                if (dato.startsWith("Contenido:")) {
+                    opcion += " - " + dato.substring(
+                        "Contenido:".length()).trim();
+                }
+            }
+
+            codigosMedicamentos.put(opcion, datos[0]);
+            cmbMedicamento.addItem(opcion);
+        });
+
+        cmbPaciente.setSelectedIndex(-1);
+        cmbMedico.setSelectedIndex(-1);
+        cmbMedicamento.setSelectedIndex(-1);
+
+        txtEspecialidad.setText("");
+    }
+    
+    
+    private void abrirCalendario() {
+
+        final java.time.YearMonth[] mes = {
+            java.time.YearMonth.now()
+        };
+
+        javax.swing.JDialog ventana =
+            new javax.swing.JDialog(this, "Seleccionar fecha", true);
+
+        javax.swing.JLabel titulo =
+            new javax.swing.JLabel("", javax.swing.SwingConstants.CENTER);
+
+        javax.swing.JButton anterior = new javax.swing.JButton("<");
+        javax.swing.JButton siguiente = new javax.swing.JButton(">");
+
+        javax.swing.JPanel encabezado =
+            new javax.swing.JPanel(new java.awt.BorderLayout());
+
+        encabezado.add(anterior, java.awt.BorderLayout.WEST);
+        encabezado.add(titulo, java.awt.BorderLayout.CENTER);
+        encabezado.add(siguiente, java.awt.BorderLayout.EAST);
+
+        javax.swing.JPanel dias =
+            new javax.swing.JPanel(new java.awt.GridLayout(0, 7, 4, 4));
+
+        Runnable actualizar = () -> {
+
+            dias.removeAll();
+
+            titulo.setText(
+                mes[0].getMonth().getDisplayName(
+                    java.time.format.TextStyle.FULL,
+                    new java.util.Locale("es", "PE"))
+                + " " + mes[0].getYear()
+            );
+
+            for (String nombre : new String[]{
+                    "Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"}) {
+
+                dias.add(new javax.swing.JLabel(
+                    nombre, javax.swing.SwingConstants.CENTER));
+            }
+
+            int inicio = mes[0].atDay(1).getDayOfWeek().getValue();
+
+            for (int i = 1; i < inicio; i++) {
+                dias.add(new javax.swing.JLabel(""));
+            }
+
+            for (int numero = 1;
+                    numero <= mes[0].lengthOfMonth(); numero++) {
+
+                java.time.LocalDate fecha = mes[0].atDay(numero);
+
+                javax.swing.JButton boton =
+                    new javax.swing.JButton(String.valueOf(numero));
+
+                boton.setEnabled(
+                    !fecha.isBefore(java.time.LocalDate.now())
+                );
+
+                boton.addActionListener(e -> {
+                    txtFechaCita.setText(
+                        fecha.format(
+                            java.time.format.DateTimeFormatter
+                                .ofPattern("dd/MM/uuuu"))
+                    );
+                    ventana.dispose();
+                });
+
+                dias.add(boton);
+            }
+
+            dias.revalidate();
+            dias.repaint();
+            ventana.pack();
+        };
+
+        anterior.addActionListener(e -> {
+            mes[0] = mes[0].minusMonths(1);
+            actualizar.run();
+        });
+
+        siguiente.addActionListener(e -> {
+            mes[0] = mes[0].plusMonths(1);
+            actualizar.run();
+        });
+
+        javax.swing.JPanel principal =
+            new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
+
+        principal.setBorder(
+            javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        );
+
+        principal.add(encabezado, java.awt.BorderLayout.NORTH);
+        principal.add(dias, java.awt.BorderLayout.CENTER);
+
+        ventana.setContentPane(principal);
+
+        actualizar.run();
+
+        ventana.setLocationRelativeTo(this);
+        ventana.setVisible(true);
+    }
+    
+    
+    private void buscarCitas() {
+
+        String filtro = jTextField1.getText().trim()
+            .toLowerCase(java.util.Locale.ROOT);
+
+        javax.swing.table.DefaultTableModel tabla =
+            (javax.swing.table.DefaultTableModel) jTable1.getModel();
+
+        tabla.setRowCount(0);
+
+        File archivo = new File("citas.txt");
+
+        if (!archivo.exists()) {
+            return;
+        }
+
+        try (BufferedReader lector =
+                new BufferedReader(new FileReader(archivo))) {
+
+            String linea;
+            int numero = 0;
+
+            while ((linea = lector.readLine()) != null) {
+
+                if (linea.trim().isEmpty()) continue;
+
+                numero++;
+
+                java.util.Map<String, String> campos =
+                    new java.util.HashMap<>();
+
+                for (String parte : linea.split("\\s*\\|\\s*")) {
+                    int posicion = parte.indexOf(':');
+
+                    if (posicion > 0) {
+                        campos.put(
+                            parte.substring(0, posicion).trim(),
+                            parte.substring(posicion + 1).trim()
+                        );
+                    }
+                }
+
+                // Compatibilidad con citas antiguas y nuevas
+                String dni = campos.getOrDefault("PAC", "");
+
+                if (campos.containsKey("PAC_CIF")) {
+                    try {
+                        dni = util.CifradoDni.descifrar(
+                            campos.get("PAC_CIF")
+                        );
+                    } catch (IllegalStateException ex) {
+                        dni = "No recuperable";
+                    }
+                }
+
+                String idMedico = campos.getOrDefault("MED", "");
+                String precio = campos.getOrDefault("Costo", "");
+                String fecha = campos.getOrDefault("Fecha", "");
+                String hora = campos.getOrDefault("Hora", "");
+
+                // Buscar nombre del paciente
+                String paciente = dni;
+
+                for (java.util.Map.Entry<String, String> dato
+                        : dniPacientes.entrySet()) {
+
+                    if (dato.getValue().equals(dni)) {
+                        paciente = dato.getKey();
+                        break;
+                    }
+                }
+
+                // Buscar nombre del médico
+                String medico = idMedico;
+
+                for (java.util.Map.Entry<String, String> dato
+                        : idsMedicos.entrySet()) {
+
+                    if (dato.getValue().equals(idMedico)) {
+                        medico = dato.getKey();
+                        break;
+                    }
+                }
+
+                String contenido = (
+                    paciente + " " + dni + " " +
+                    medico + " " + idMedico + " " +
+                    fecha + " " + hora + " " + numero
+                ).toLowerCase(java.util.Locale.ROOT);
+
+                if (filtro.isEmpty() || contenido.contains(filtro)) {
+
+                    tabla.addRow(new Object[]{
+                        String.format("C-%04d", numero),
+                        paciente,
+                        medico,
+                        precio,
+                        fecha,
+                        hora
+                    });
+                }
+            }
+
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error al cargar citas: " + e.getMessage());
+        }
+    }
+
+    
+    private void seleccionarHora() {
+
+        if (txtFechaCita.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Primero seleccione la fecha de la cita.");
+            return;
+        }
+
+        java.time.LocalDate fecha;
+
+        try {
+            fecha = java.time.LocalDate.parse(
+                txtFechaCita.getText(),
+                java.time.format.DateTimeFormatter
+                    .ofPattern("dd/MM/uuuu")
+            );
+        } catch (java.time.format.DateTimeParseException e) {
+            JOptionPane.showMessageDialog(this,
+                "La fecha seleccionada no es válida.");
+            return;
+        }
+
+        java.time.LocalTime ahora = java.time.LocalTime.now();
+
+        javax.swing.JSpinner horas = new javax.swing.JSpinner(
+            new javax.swing.SpinnerNumberModel(
+                ahora.getHour(), 0, 23, 1
+            )
+        );
+
+        javax.swing.JSpinner minutos = new javax.swing.JSpinner(
+            new javax.swing.SpinnerNumberModel(
+                ahora.getMinute(), 0, 59, 1
+            )
+        );
+
+        javax.swing.JPanel panel = new javax.swing.JPanel();
+
+        panel.add(new javax.swing.JLabel("Hora:"));
+        panel.add(horas);
+        panel.add(new javax.swing.JLabel("Minutos:"));
+        panel.add(minutos);
+
+        int respuesta = JOptionPane.showConfirmDialog(
+            this,
+            panel,
+            "Seleccionar hora de cita",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (respuesta != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        int hora = (Integer) horas.getValue();
+        int minuto = (Integer) minutos.getValue();
+
+        java.time.LocalDateTime cita =
+            fecha.atTime(hora, minuto);
+
+        if (!cita.isAfter(java.time.LocalDateTime.now())) {
+            JOptionPane.showMessageDialog(this,
+                "Seleccione una fecha y hora futuras.");
+            return;
+        }
+
+        txtHoraCita.setText(
+            String.format("%02d:%02d", hora, minuto)
+        );
+    }
+
+
     
     // Método auxiliar para buscar registros dentro de los archivos .txt
     private String buscarEnArchivo(String nombreArchivo, String claveBusqueda) {
@@ -46,352 +482,287 @@ public class RegistroCitasForm extends javax.swing.JFrame {
     }
     
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
     private void initComponents() {
 
-        txtDniPaciente = new javax.swing.JLabel();
         txtNombrePaciente = new javax.swing.JLabel();
         txtIdMedico = new javax.swing.JLabel();
-        txtNombreMedico = new javax.swing.JLabel();
-        txtCodMedicamento = new javax.swing.JLabel();
         txtNombreMedicamento = new javax.swing.JLabel();
         txtCostoConsulta = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
-        jTextField2 = new javax.swing.JTextField();
-        jTextField3 = new javax.swing.JTextField();
-        jTextField4 = new javax.swing.JTextField();
-        jTextField5 = new javax.swing.JTextField();
-        jTextField6 = new javax.swing.JTextField();
         jTextField7 = new javax.swing.JTextField();
-        btnBuscarPaciente = new javax.swing.JButton();
-        btnBuscarMedico = new javax.swing.JButton();
-        btnBuscarMedicamento = new javax.swing.JButton();
         btnGuardarCita = new javax.swing.JButton();
-        btnVolverMenu = new javax.swing.JButton();
         jLabel3 = new javax.swing.JLabel();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        cmbPaciente = new javax.swing.JComboBox<>();
+        cmbMedico = new javax.swing.JComboBox<>();
+        cmbMedicamento = new javax.swing.JComboBox<>();
+        txtEspecialidad = new javax.swing.JTextField();
+        jLabel5 = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        Diagnóstico = new javax.swing.JTextArea();
+        jLabel6 = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
+        jTextField1 = new javax.swing.JTextField();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        txtFechaCita = new javax.swing.JTextField();
+        txtHoraCita = new javax.swing.JTextField();
+        jButton2 = new javax.swing.JButton();
+        jButton3 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        txtDniPaciente.setText("DNI Paciente:");
+        txtNombrePaciente.setText("DNI y Nombres del Paciente:");
 
-        txtNombrePaciente.setText("Nombre Paciente:");
+        txtIdMedico.setText("ID y Nombres del Médico:");
 
-        txtIdMedico.setText("ID Médico:");
-
-        txtNombreMedico.setText("Nombre Médico:");
-
-        txtCodMedicamento.setText("Cod. Medicamento:");
-
-        txtNombreMedicamento.setText("Nombre Medicamento:");
+        txtNombreMedicamento.setText("Codigo y Nombre del Medicamento:");
 
         txtCostoConsulta.setText("Costo Consulta (S/):");
 
-        jTextField1.addActionListener(this::jTextField1ActionPerformed);
-
-        jTextField2.setEditable(false);
-
-        jTextField3.addActionListener(this::jTextField3ActionPerformed);
-
-        jTextField4.setEditable(false);
-
-        jTextField6.setEditable(false);
-        jTextField6.addActionListener(this::jTextField6ActionPerformed);
-
         jTextField7.addActionListener(this::jTextField7ActionPerformed);
-
-        btnBuscarPaciente.setText("Buscar Paciente.");
-        btnBuscarPaciente.addActionListener(this::btnBuscarPacienteActionPerformed);
-
-        btnBuscarMedico.setText("Buscar Médico.");
-        btnBuscarMedico.addActionListener(this::btnBuscarMedicoActionPerformed);
-
-        btnBuscarMedicamento.setText("Buscar Medicamento.");
-        btnBuscarMedicamento.addActionListener(this::btnBuscarMedicamentoActionPerformed);
 
         btnGuardarCita.setText("Guardar Cita");
         btnGuardarCita.addActionListener(this::btnGuardarCitaActionPerformed);
 
-        btnVolverMenu.setText("Volver al Menú.");
-        btnVolverMenu.addActionListener(this::btnVolverMenuActionPerformed);
-
         jLabel3.setText("Centro de Salud Daniel Alcides Carrión - Campoy");
+
+        jLabel1.setText("Especialidad / Área:");
+
+        jLabel2.setText("Fecha:");
+
+        jLabel4.setText("Hora:");
+
+        cmbPaciente.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        cmbMedico.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        cmbMedicamento.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        jLabel5.setText("Observación:");
+
+        Diagnóstico.setColumns(20);
+        Diagnóstico.setRows(5);
+        jScrollPane1.setViewportView(Diagnóstico);
+
+        jLabel6.setText("Busqueda de Citas:");
+
+        jButton1.setText("Buscar");
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Cita", "Paciente/DNI", "Médico", "Precio", "Fecha ", "hora"
+            }
+        ));
+        jScrollPane2.setViewportView(jTable1);
+
+        jButton2.setText("jButton2");
+        jButton2.addActionListener(this::jButton2ActionPerformed);
+
+        jButton3.setText("jButton3");
+        jButton3.addActionListener(this::jButton3ActionPerformed);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(38, 38, 38)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtNombreMedicamento)
-                            .addComponent(txtCostoConsulta))
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGap(43, 43, 43)
-                                .addComponent(jTextField6, javax.swing.GroupLayout.PREFERRED_SIZE, 108, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, Short.MAX_VALUE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(jTextField7, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE))))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(jTextField5, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtNombrePaciente)
-                            .addComponent(txtIdMedico, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtNombreMedico)
-                            .addComponent(txtCodMedicamento)
-                            .addComponent(txtDniPaciente, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGap(63, 63, 63)
-                                .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jTextField4, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jTextField3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jTextField1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE))))))
-                .addGap(30, 30, 30)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(btnBuscarMedicamento, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btnBuscarMedico, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btnBuscarPaciente, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(74, Short.MAX_VALUE))
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(92, 92, 92)
                         .addComponent(btnGuardarCita, javax.swing.GroupLayout.PREFERRED_SIZE, 144, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(66, 66, 66)
-                        .addComponent(btnVolverMenu, javax.swing.GroupLayout.PREFERRED_SIZE, 144, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(21, 21, 21))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addComponent(jLabel3)
+                        .addGap(370, 370, 370))))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(49, 49, 49)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 543, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel5)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(123, 123, 123)
-                        .addComponent(jLabel3)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(txtFechaCita, javax.swing.GroupLayout.PREFERRED_SIZE, 166, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jButton2))
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(txtNombreMedicamento)
+                                    .addComponent(txtNombrePaciente)
+                                    .addComponent(txtIdMedico)
+                                    .addComponent(cmbPaciente, 0, 247, Short.MAX_VALUE)
+                                    .addComponent(cmbMedico, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(cmbMedicamento, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(txtCostoConsulta)
+                            .addComponent(jLabel1)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(txtHoraCita, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jButton3))
+                            .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jTextField7)
+                            .addComponent(txtEspecialidad))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 31, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel6)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(jTextField1)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jButton1))
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 434, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(21, 21, 21))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(18, 18, 18)
                 .addComponent(jLabel3)
-                .addGap(30, 30, 30)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(8, 8, 8))
-                    .addComponent(txtDniPaciente, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(32, 32, 32)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(8, 8, 8)
-                        .addComponent(txtNombrePaciente))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(btnBuscarPaciente))))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(txtNombrePaciente)
+                        .addGap(16, 16, 16)
+                        .addComponent(cmbPaciente, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel6)
                         .addGap(18, 18, 18)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtIdMedico)))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(30, 30, 30)
-                        .addComponent(btnBuscarMedico)))
-                .addGap(16, 16, 16)
+                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButton1))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(txtNombreMedico))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(24, 24, 24)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(txtCodMedicamento)
-                            .addComponent(jTextField5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(4, 4, 4)
-                        .addComponent(btnBuscarMedicamento)))
-                .addGap(13, 13, 13)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txtNombreMedicamento)
-                    .addComponent(jTextField6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(25, 25, 25)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txtCostoConsulta)
-                    .addComponent(jTextField7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 72, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnGuardarCita)
-                    .addComponent(btnVolverMenu))
-                .addGap(61, 61, 61))
+                            .addComponent(txtIdMedico)
+                            .addComponent(jLabel1))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(cmbMedico, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtEspecialidad, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(12, 12, 12)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(txtNombreMedicamento, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtCostoConsulta))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(cmbMedicamento, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jTextField7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel2)
+                            .addComponent(jLabel4))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(txtFechaCita, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtHoraCita, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButton2)
+                            .addComponent(jButton3))
+                        .addGap(31, 31, 31)
+                        .addComponent(jLabel5)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 357, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 43, Short.MAX_VALUE)
+                .addComponent(btnGuardarCita)
+                .addGap(19, 19, 19))
         );
 
         pack();
-    }// </editor-fold>//GEN-END:initComponents
+    }// </editor-fold>                        
 
-    private void jTextField7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField7ActionPerformed
+    private void jTextField7ActionPerformed(java.awt.event.ActionEvent evt) {                                            
         // TODO add your handling code here:
-    }//GEN-LAST:event_jTextField7ActionPerformed
+    }                                           
 
-    private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jTextField1ActionPerformed
+    private void btnGuardarCitaActionPerformed(java.awt.event.ActionEvent evt) {                                               
+    String paciente = (String) cmbPaciente.getSelectedItem();
+    String medico = (String) cmbMedico.getSelectedItem();
+    String medicamento = (String) cmbMedicamento.getSelectedItem();
 
-    private void jTextField6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField6ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jTextField6ActionPerformed
+    String costoTexto = jTextField7.getText().trim().replace(",", ".");
+    String fecha = txtFechaCita.getText().trim();
+    String hora = txtHoraCita.getText().trim();
+    String observaciones = Diagnóstico.getText().trim();
 
-    private void btnBuscarPacienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarPacienteActionPerformed
-    String dni = jTextField1.getText().trim();
-    if (dni.isEmpty()) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Ingrese el DNI del paciente.", "Advertencia", javax.swing.JOptionPane.WARNING_MESSAGE);
+    if (paciente == null || medico == null || medicamento == null
+            || costoTexto.isEmpty() || fecha.isEmpty()
+            || hora.isEmpty()) {
+
+        JOptionPane.showMessageDialog(this,
+            "Seleccione paciente, médico, medicamento, fecha y hora; "
+            + "complete también el costo.");
         return;
-    }
-    String resultado = service.buscarPaciente(dni);
-    String resultado = service.buscarPaciente(dni);
-
-    if (resultado != null) {
-
-    String[] datos = resultado.split("\\|");
-
-    if (datos.length >= 3) {
-        String apellidos = datos[1].trim();
-        String nombre = datos[2].trim();
-
-        jTextField2.setText(nombre + " " + apellidos);
-    }
-
-    javax.swing.JOptionPane.showMessageDialog(
-        this,
-        "Paciente encontrado."
-        );
-
-        } else {
-
-        javax.swing.JOptionPane.showMessageDialog(
-            this,
-            "Paciente no encontrado en pacientes.txt",
-            "Error",
-            javax.swing.JOptionPane.ERROR_MESSAGE
-            );
-
-        jTextField2.setText("");
-    }
-    }//GEN-LAST:event_btnBuscarPacienteActionPerformed
-
-    private void jTextField3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField3ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jTextField3ActionPerformed
-
-    private void btnBuscarMedicoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarMedicoActionPerformed
-    String id = jTextField3.getText().trim();
-    if (id.isEmpty()) {
-    javax.swing.JOptionPane.showMessageDialog(this, "Ingrese el ID del médico.", "Advertencia", javax.swing.JOptionPane.WARNING_MESSAGE);
-    return;
-    }
-   String resultado = service.buscarMedico(id);
-
-    if (resultado != null) {
-
-    String[] datos = resultado.split("\\|");
-
-    if (datos.length >= 2) {
-        String nombreMedico = datos[1].trim();
-        jTextField4.setText(nombreMedico);
-    }
-
-    javax.swing.JOptionPane.showMessageDialog(
-        this,
-        "Médico encontrado."
-    );
-
-    } else {
-
-    javax.swing.JOptionPane.showMessageDialog(
-        this,
-        "Médico no encontrado en medicos.txt",
-        "Error",
-        javax.swing.JOptionPane.ERROR_MESSAGE
-    );
-
-    jTextField4.setText("");
-    }
-    }//GEN-LAST:event_btnBuscarMedicoActionPerformed
-
-    private void btnBuscarMedicamentoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarMedicamentoActionPerformed
-    String cod = jTextField5.getText().trim();
-    if (cod.isEmpty()) {
-    javax.swing.JOptionPane.showMessageDialog(this, "Ingrese el código del medicamento.", "Advertencia", javax.swing.JOptionPane.WARNING_MESSAGE);
-    return;
-    }
-    SString resultado = service.buscarMedicamento(cod);
-
-    if (resultado != null) {
-
-    String[] datos = resultado.split("\\|");
-
-    if (datos.length >= 2) {
-        String nombreMedicamento = datos[1].trim();
-        jTextField6.setText(nombreMedicamento);
-    }
-
-    javax.swing.JOptionPane.showMessageDialog(
-        this,
-        "Medicamento encontrado."
-    );
-
-    } else {
-
-    javax.swing.JOptionPane.showMessageDialog(
-        this,
-        "Medicamento no encontrado en medicamentos.txt",
-        "Error",
-        javax.swing.JOptionPane.ERROR_MESSAGE
-    );
-
-    jTextField6.setText("");
-    }
-    }//GEN-LAST:event_btnBuscarMedicamentoActionPerformed
-
-    private void btnGuardarCitaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarCitaActionPerformed
-    String dniPac = jTextField1.getText().trim();
-    String idMed = jTextField3.getText().trim();
-    String codMedica = jTextField5.getText().trim();
-    String costoStr = jTextField7.getText().trim();
-
-    if (jTextField2.getText().isEmpty() || jTextField4.getText().isEmpty() || jTextField6.getText().isEmpty() || costoStr.isEmpty()) {
-    javax.swing.JOptionPane.showMessageDialog(this, "Debe buscar y validar previamente al Paciente, Médico y Medicamento.", "Datos Incompletos", javax.swing.JOptionPane.WARNING_MESSAGE);
-    return;
     }
 
     try {
-    double costo = Double.parseDouble(costoStr);
+        double costo = Double.parseDouble(costoTexto);
 
-    model.CitaMedica cita = new model.CitaMedica(dniPac, idMed, codMedica, costo);
-    if (service.registrarCita(cita)) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Cita agendada correctamente en citas");
-        jTextField1.setText(""); jTextField2.setText("");
-        jTextField3.setText(""); jTextField4.setText("");
-        jTextField5.setText(""); jTextField6.setText("");
-        jTextField7.setText("");
-        jTextField1.requestFocus();
-    } else {
-        javax.swing.JOptionPane.showMessageDialog(this, "Error al guardar la cita.", "Error IO", javax.swing.JOptionPane.ERROR_MESSAGE);
-    }
-    } catch (NumberFormatException ex) {
-    javax.swing.JOptionPane.showMessageDialog(this, "El costo debe ser un valor numérico.", "Error Formato", javax.swing.JOptionPane.ERROR_MESSAGE);
-    }
-    }//GEN-LAST:event_btnGuardarCitaActionPerformed
+        if (!Double.isFinite(costo) || costo < 0) {
+            JOptionPane.showMessageDialog(this,
+                "Ingrese un costo válido.");
+            return;
+        }
 
-    private void btnVolverMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVolverMenuActionPerformed
-    menu_frame menu = new menu_frame();
-    menu.setVisible(true);
-    this.dispose();
-    }//GEN-LAST:event_btnVolverMenuActionPerformed
+        model.CitaMedica cita = new model.CitaMedica(
+            dniPacientes.get(paciente),
+            idsMedicos.get(medico),
+            codigosMedicamentos.get(medicamento),
+            costo
+        );
+
+        cita.setFechaCita(fecha);
+        cita.setHoraCita(hora);
+        cita.setObservaciones(observaciones);
+        cita.setDiagnostico(Diagnóstico.getText().trim());
+
+        if (service.registrarCita(cita)) {
+
+            JOptionPane.showMessageDialog(this,
+                "Cita registrada correctamente.");
+
+            cmbPaciente.setSelectedIndex(-1);
+            cmbMedico.setSelectedIndex(-1);
+            cmbMedicamento.setSelectedIndex(-1);
+
+            txtEspecialidad.setText("");
+            txtFechaCita.setText("");
+            txtHoraCita.setText("");
+            jTextField7.setText("");
+            Diagnóstico.setText("");
+            jTextField1.setText("");
+            buscarCitas();
+
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "No se pudo guardar la cita.");
+        }
+
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(this,
+            "El costo debe ser numérico.");
+    } catch (IllegalStateException e) {
+        JOptionPane.showMessageDialog(this,
+            "Error al guardar los datos cifrados: " + e.getMessage());
+    }
+    }                                              
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {                                         
+        abrirCalendario();
+    }                                        
+
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {                                         
+        seleccionarHora();
+    }                                        
 
     /**
      * @param args the command line arguments
@@ -418,26 +789,32 @@ public class RegistroCitasForm extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(() -> new RegistroCitasForm().setVisible(true));
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnBuscarMedicamento;
-    private javax.swing.JButton btnBuscarMedico;
-    private javax.swing.JButton btnBuscarPaciente;
+    // Variables declaration - do not modify                     
+    private javax.swing.JTextArea Diagnóstico;
     private javax.swing.JButton btnGuardarCita;
-    private javax.swing.JButton btnVolverMenu;
+    private javax.swing.JComboBox<String> cmbMedicamento;
+    private javax.swing.JComboBox<String> cmbMedico;
+    private javax.swing.JComboBox<String> cmbPaciente;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
+    private javax.swing.JButton jButton3;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JTable jTable1;
     private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jTextField2;
-    private javax.swing.JTextField jTextField3;
-    private javax.swing.JTextField jTextField4;
-    private javax.swing.JTextField jTextField5;
-    private javax.swing.JTextField jTextField6;
     private javax.swing.JTextField jTextField7;
-    private javax.swing.JLabel txtCodMedicamento;
     private javax.swing.JLabel txtCostoConsulta;
-    private javax.swing.JLabel txtDniPaciente;
+    private javax.swing.JTextField txtEspecialidad;
+    private javax.swing.JTextField txtFechaCita;
+    private javax.swing.JTextField txtHoraCita;
     private javax.swing.JLabel txtIdMedico;
     private javax.swing.JLabel txtNombreMedicamento;
-    private javax.swing.JLabel txtNombreMedico;
     private javax.swing.JLabel txtNombrePaciente;
-    // End of variables declaration//GEN-END:variables
+    // End of variables declaration                   
 }
