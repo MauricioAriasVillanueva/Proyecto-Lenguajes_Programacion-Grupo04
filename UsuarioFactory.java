@@ -1,7 +1,7 @@
 package factory;
 
 import model.Medico;
-import model.Paciente;
+import model.Paciente; 
 import model.Persona;
 
 public class UsuarioFactory {
