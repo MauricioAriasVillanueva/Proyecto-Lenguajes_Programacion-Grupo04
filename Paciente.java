@@ -4,6 +4,8 @@ public class Paciente extends Persona {
     private String apellidos;
     private String telefono;
     private String seguro;
+    private String fechaNacimiento = "";
+    private String sexo = "";
     private String presionArterial;
     private double temperatura;
     private double peso;
@@ -22,7 +24,21 @@ public class Paciente extends Persona {
 
     public String getApellidos() { return apellidos; }
     public String getTelefono() { return telefono; }
-    public String getSeguro() { return seguro; }
+    public String getSeguro()  { return seguro; }
+    public String getFechaNacimiento() {
+    return fechaNacimiento;
+        }
+
+    public void setFechaNacimiento(String fechaNacimiento) {
+            this.fechaNacimiento = fechaNacimiento;
+        }
+    public String getSexo() {
+    return sexo;
+    }
+
+    public void setSexo(String sexo) {
+        this.sexo = sexo;
+    }
     public String getPresionArterial() { return presionArterial; }
     public void setPresionArterial(String presionArterial) { this.presionArterial = presionArterial; }
     public double getTemperatura() { return temperatura; }
@@ -40,9 +56,13 @@ public class Paciente extends Persona {
     @Override
     public String toTxt() {
         return dniHash + " | " + apellidos + " | " + nombre
-        + " | Edad: " + edad
-        + " | Tel: " + telefono
-        + " | " + seguro
-        + " | Triaje: " + estadoTriaje;
+            + " | Edad: " + edad
+            + " | Tel: " + telefono
+            + " | " + seguro
+            + " | Triaje: " + estadoTriaje
+            + (fechaNacimiento.isEmpty() ? ""
+               : " | Fecha Nacimiento: " + fechaNacimiento)
+            + " | Sexo: " + sexo
+            + " | DNI Cifrado: " + util.CifradoDni.cifrar(getDni());
     }
 }
